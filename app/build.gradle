@@ -38,11 +38,19 @@ model {
             }
         }
 
+//        ndk {
+//            moduleName "main"
+//            cppFlags.add("-I${file("src/main/jni/ffmpeg")}".toString())
+//            cppFlags.add("-I${file("src/main/jni/SDL/include")}".toString())
+//            ldLibs.addAll(['log'])
+//            abiFilters.addAll(["armeabi-v7a"])
+//        }
+
         ndk {
-            moduleName "main"
-            cppFlags.add("-I${file("src/main/jni/ffmpeg")}".toString())
-            cppFlags.add("-I${file("src/main/jni/SDL/include")}".toString())
+            moduleName "ffmpegPlayer"
             ldLibs.addAll(['log'])
+            cppFlags.addAll(['-std=c++11', '-Wall', '-fno-exceptions', '-fno-rtti'])
+            stl "stlport_static"
             abiFilters.addAll(["armeabi-v7a"])
         }
 
