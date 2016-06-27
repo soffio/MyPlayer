@@ -3,7 +3,6 @@
 //
 #include "log.h"
 #include "FFPlayer.h"
-#include "MessageQueue.h"
 #include <unistd.h>
 
 #define ANDROID_AUDIO_CHANNELS 2
@@ -598,10 +597,6 @@ static void fill_border(int xleft, int ytop, int width, int height, int x,
 //}
 
 static void free_picture(Frame *vp) {
-//    if (vp->bmp) {
-//        SDL_DestroyTexture(vp->bmp);
-//        vp->bmp = NULL;
-//    }
     av_frame_free(&vp->pFrameRGBA);
 }
 
