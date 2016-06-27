@@ -6,6 +6,7 @@
 #include "FFPlayer.h"
 #include "log.h"
 #include <pthread.h>
+#include <android/native_window_jni.h>
 
 using namespace ffplayer;
 //
@@ -84,7 +85,13 @@ static void nativeRelease(JNIEnv *env, jobject thiz) {
 }
 
 static void nativePrepare(JNIEnv *env, jobject thiz) {
-
+    ALOGD("nativePrepare");
+    FFPlayer *player = getMediaPlayer(env, thiz);
+    if (player == NULL) {
+        jniThrowException(env, "java/lang/IllegalStateException", NULL);
+        return;
+    }
+    player->prepare();
 }
 
 static void nativeSeekTo(JNIEnv *env, jobject thiz, jint msec) {
@@ -92,7 +99,15 @@ static void nativeSeekTo(JNIEnv *env, jobject thiz, jint msec) {
 }
 
 static void nativeSetSurface(JNIEnv *env, jobject thiz, jobject jsurface) {
-
+    ALOGD("nativeSetSurface");
+    FFPlayer *player = getMediaPlayer(env, thiz);
+    if (player == NULL) {
+        jniThrowException(env,"java/lang/IllegalStateException",NULL);
+        return;
+    }
+    ANativeWindow* window = ANativeWindow_fromSurface(env,jsurface);
+    ANativeWindow_acquire(window);
+    player->setWindow(window);
 }
 
 static jint nativeGetDuration(JNIEnv *env, jobject thiz) {

@@ -39,6 +39,7 @@ extern "C" {
 
 #include <android/log.h>
 
+#include "libavutil/mathematics.h"
 #include <inttypes.h>
 #include <math.h>
 #include <limits.h>
@@ -47,7 +48,6 @@ extern "C" {
 
 #include "libavutil/avstring.h"
 #include "libavutil/eval.h"
-#include "libavutil/mathematics.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/dict.h"
@@ -3830,7 +3830,7 @@ int main(int argc, char **argv) {
 //解析输入的命令。 Comment
 //parse_options(NULL, argc, argv, options, opt_input_file);
     input_filename = "C:\\Users\\Leon\\Downloads\\test.flv";
-    input_filename = "/sdcard/localfile.mp4";
+    input_filename = "/sdcard/360.mp4";
     SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "333333\n");
     if (!input_filename) {
         show_usage();
