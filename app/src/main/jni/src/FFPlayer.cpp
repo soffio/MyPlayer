@@ -658,7 +658,11 @@ static void video_image_display(VideoState *is) {
                            is->height, vp->width, vp->height, vp->sar);
 
     ANativeWindow_Buffer windowBuffer;
-    ANativeWindow_lock(is->window, &windowBuffer, NULL);
+    int error = ANativeWindow_lock(is->window, &windowBuffer, NULL);
+    if (error != 0) {
+        ALOGE("ANativeWindow_lock error=%d", error);
+        return;
+    }
 
     // 获取stride
     uint8_t *dst = (uint8_t *) windowBuffer.bits;
