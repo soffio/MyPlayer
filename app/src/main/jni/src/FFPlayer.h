@@ -71,7 +71,6 @@ extern "C" {
 /* TODO: We assume that a decoded and resampled frame fits into this buffer */
 #define SAMPLE_ARRAY_SIZE (8 * 65536)
 
-#define CURSOR_HIDE_DELAY 1000000
 
 typedef struct MyAVPacketList {
     AVPacket pkt;

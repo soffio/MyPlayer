@@ -84,8 +84,6 @@ static int genpts = 0;
 static int lowres = 0;
 static int decoder_reorder_pts = -1;
 static int autoexit;
-static int exit_on_keydown;
-static int exit_on_mousedown;
 static int loop = 1;
 static int framedrop = -1;
 static int infinite_buffer = -1;
@@ -94,8 +92,6 @@ static const char *audio_codec_name;
 static const char *subtitle_codec_name;
 static const char *video_codec_name;
 double rdftspeed = 0.02;
-static int64_t cursor_last_shown;
-static int cursor_hidden = 0;
 static int autorotate = 1;
 
 /* current context */
@@ -107,26 +103,6 @@ static AVPacket flush_pkt;
 #define FF_ALLOC_EVENT   1
 #define FF_QUIT_EVENT   2
 
-static inline
-int cmp_audio_fmts(enum AVSampleFormat fmt1, int64_t channel_count1,
-                   enum AVSampleFormat fmt2, int64_t channel_count2) {
-    /* If channel count == 1, planar and non-planar formats are the same */
-    if (channel_count1 == 1 && channel_count2 == 1)
-        return av_get_packed_sample_fmt(fmt1) != av_get_packed_sample_fmt(fmt2);
-    else
-        return channel_count1 != channel_count2 || fmt1 != fmt2;
-}
-
-static inline int64_t get_valid_channel_layout(int64_t channel_layout,
-                                               int channels) {
-    if (channel_layout
-        && av_get_channel_layout_nb_channels(channel_layout) == channels)
-        return channel_layout;
-    else
-        return 0;
-}
-
-static void free_picture(Frame *vp);
 
 static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt) {
     MyAVPacketList *pkt1;
@@ -391,6 +367,10 @@ static int frame_queue_init(FrameQueue *f, PacketQueue *pktq, int max_size,
     return 0;
 }
 
+static void free_picture(Frame *vp) {
+    av_frame_free(&vp->pFrameRGBA);
+}
+
 static void frame_queue_destory(FrameQueue *f) {
     int i;
     for (i = 0; i < f->max_size; i++) {
@@ -595,10 +575,6 @@ static void fill_border(int xleft, int ytop, int width, int height, int x,
 //    SDL_UpdateYUVTexture(bmp, &dstRect, rect->pict.data[0],
 //                         rect->pict.linesize[0], NULL, 0, NULL, 0);
 //}
-
-static void free_picture(Frame *vp) {
-    av_frame_free(&vp->pFrameRGBA);
-}
 
 static void calculate_display_rect(SDL_Rect *rect, int scr_xleft, int scr_ytop,
                                    int scr_width, int scr_height, int pic_width, int pic_height,
