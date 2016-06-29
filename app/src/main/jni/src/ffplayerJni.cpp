@@ -95,7 +95,14 @@ static void nativePrepare(JNIEnv *env, jobject thiz) {
 }
 
 static void nativeSeekTo(JNIEnv *env, jobject thiz, jint msec) {
-
+    ALOGD("nativeSeekTo %d",msec);
+    FFPlayer *player = getMediaPlayer(env, thiz);
+    if (player == NULL) {
+        jniThrowException(env, "java/lang/IllegalStateException", NULL);
+        return;
+    }
+    player->seekTo(msec);
+    ALOGD("nativeSeekTo done");
 }
 
 static void nativeSetSurface(JNIEnv *env, jobject thiz, jobject jsurface) {

@@ -643,7 +643,7 @@ static void video_image_display(VideoState *is) {
     // 获取stride
     uint8_t *dst = (uint8_t *) windowBuffer.bits;
     int dstStride = windowBuffer.stride * 4;
-    uint8_t *src = (uint8_t * )(vp->pFrameRGBA->data[0]);
+    uint8_t *src = (uint8_t *) (vp->pFrameRGBA->data[0]);
     int srcStride = vp->pFrameRGBA->linesize[0];
 
     // 由于window的stride和帧的stride不同,因此需要逐行复制
@@ -1261,23 +1261,23 @@ static void video_refresh(void *opaque, double *remaining_time) {
                 av_diff = get_master_clock(is) - get_clock(&is->audclk);
             av_log(NULL, AV_LOG_INFO,
                    "%7.2f %s:%7.3f fd=%4d aq=%5dKB vq=%5dKB sq=%5dB f=%"
-            PRId64
-            "/%"
-            PRId64
-            "   \r",
-                    get_master_clock(is),
-                    (is->audio_st && is->video_st) ?
-                    "A-V" :
-                    (is->video_st ?
-                     "M-V" : (is->audio_st ? "M-A" : "   ")),
-                    av_diff, is->frame_drops_early + is->frame_drops_late,
-                    aqsize / 1024, vqsize / 1024, sqsize,
-                    is->video_st ?
-                    is->video_st->codec->pts_correction_num_faulty_dts :
-                    0,
-                    is->video_st ?
-                    is->video_st->codec->pts_correction_num_faulty_pts :
-                    0);
+                           PRId64
+                           "/%"
+                           PRId64
+                           "   \r",
+                   get_master_clock(is),
+                   (is->audio_st && is->video_st) ?
+                   "A-V" :
+                   (is->video_st ?
+                    "M-V" : (is->audio_st ? "M-A" : "   ")),
+                   av_diff, is->frame_drops_early + is->frame_drops_late,
+                   aqsize / 1024, vqsize / 1024, sqsize,
+                   is->video_st ?
+                   is->video_st->codec->pts_correction_num_faulty_dts :
+                   0,
+                   is->video_st ?
+                   is->video_st->codec->pts_correction_num_faulty_pts :
+                   0);
             fflush(stdout);
             last_time = cur_time;
         }
@@ -2675,7 +2675,7 @@ static void refresh_loop_wait_event(VideoState *is, Message &msg) {
     double remaining_time = 0.0;
     while (!is->messageQueue->popMessage(msg)) {
         if (remaining_time > 0.0)
-            av_usleep((int64_t)(remaining_time * 1000000.0));
+            av_usleep((int64_t) (remaining_time * 1000000.0));
         remaining_time = REFRESH_RATE;
         if (is->show_mode != VideoState::SHOW_MODE_NONE
             && (!is->paused || is->force_refresh))
@@ -2712,8 +2712,8 @@ static void seek_chapter(VideoState *is, int incr) {
 }
 
 /* handle an event sent by the GUI */
-static void* event_loop(void *arg) {
-    VideoState* cur_stream = (VideoState*)arg;
+static void *event_loop(void *arg) {
+    VideoState *cur_stream = (VideoState *) arg;
     Message event;
     double incr, pos, frac;
 
@@ -2966,16 +2966,16 @@ static int lockmgr(void **mutex, enum AVLockOp op) {
             *mutex = av_malloc(sizeof(pthread_mutex_t));
             if (!mutex)
                 return AVERROR(ENOMEM);
-            ret = pthread_mutex_init((pthread_mutex_t * )(*mutex), NULL);
+            ret = pthread_mutex_init((pthread_mutex_t *) (*mutex), NULL);
             break;
         case AV_LOCK_OBTAIN:
-            ret = pthread_mutex_lock((pthread_mutex_t * )(*mutex));
+            ret = pthread_mutex_lock((pthread_mutex_t *) (*mutex));
             break;
         case AV_LOCK_RELEASE:
-            ret = pthread_mutex_unlock((pthread_mutex_t * )(*mutex));
+            ret = pthread_mutex_unlock((pthread_mutex_t *) (*mutex));
             break;
         case AV_LOCK_DESTROY:
-            ret = pthread_mutex_destroy((pthread_mutex_t * )(*mutex));
+            ret = pthread_mutex_destroy((pthread_mutex_t *) (*mutex));
             av_freep(mutex);
             break;
     }
@@ -3040,7 +3040,7 @@ void FFPlayer::prepare() {
     }
     ALOGV("main4");
     av_init_packet(&flush_pkt);
-    flush_pkt.data = (uint8_t * ) & flush_pkt;
+    flush_pkt.data = (uint8_t *) &flush_pkt;
 
     is = stream_open(mPath.c_str(), NULL);
     if (!is) {
@@ -3060,7 +3060,21 @@ void FFPlayer::release() {
 }
 
 void FFPlayer::seekTo(int64_t seekTimeUs) {
-
+    // TODO use seekTimeUs
+    double incr = 60;
+    double pos = get_master_clock(is);
+    if (isnan(pos))
+        pos = (double) is->seek_pos / AV_TIME_BASE;
+    pos += incr;
+    if (is->ic->start_time != AV_NOPTS_VALUE
+        && pos
+           < is->ic->start_time
+             / (double) AV_TIME_BASE)
+        pos =
+                is->ic->start_time
+                / (double) AV_TIME_BASE;
+    stream_seek(is, (int64_t) (pos * AV_TIME_BASE),
+                (int64_t) (incr * AV_TIME_BASE), 0);
 }
 
 void FFPlayer::setWindow(ANativeWindow *window) {
