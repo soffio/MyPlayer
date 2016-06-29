@@ -1,0 +1,84 @@
+apply plugin: 'com.android.model.application'
+model {
+    repositories {
+        libs(PrebuiltLibraries) {
+            SDL2 {
+                headers.srcDir "src/main/jni/SDL/include"
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jni/SDL/libSDL2.so")
+                }
+            }
+        }
+
+        libs(PrebuiltLibraries) {
+            ffmpeg {
+                headers.srcDir "src/main/jni/ffmpeg"
+                binaries.withType(SharedLibraryBinary) {
+                    sharedLibraryFile = file("src/main/jni/ffmpeg/libffmpeg.so")
+                }
+            }
+        }
+    }
+
+    android {
+        compileSdkVersion 23
+        buildToolsVersion "23.0.3"
+
+        defaultConfig {
+            applicationId "com.leon.sdl_demo"
+            minSdkVersion.apiLevel 15
+            targetSdkVersion.apiLevel 23
+            versionCode 1
+            versionName "1.0"
+        }
+        buildTypes {
+            release {
+                minifyEnabled false
+                proguardFiles.add(file('proguard-rules.txt'))
+            }
+        }
+
+//        ndk {
+//            moduleName "main"
+//            cppFlags.add("-I${file("src/main/jni/ffmpeg")}".toString())
+//            cppFlags.add("-I${file("src/main/jni/SDL/include")}".toString())
+//            ldLibs.addAll(['log'])
+//            abiFilters.addAll(["armeabi-v7a"])
+//        }
+
+        ndk {
+            moduleName "main"
+            ldLibs.addAll(['log','android','OpenSLES'])
+            cppFlags.add("-I${file("src/main/jni/SDL/include")}".toString())
+            cppFlags.add("-I${file("src/main/jni/ffmpeg")}".toString())
+            cppFlags.addAll(['-std=c++11', '-Wall', '-fno-exceptions', '-fno-rtti'])
+            stl "stlport_static"
+            abiFilters.addAll(["armeabi-v7a"])
+        }
+
+        sources {
+            main {
+                jni {
+                    dependencies {
+                        library "ffmpeg" linkage "shared"
+                        library "SDL2" linkage "shared"
+                    }
+                }
+
+                jniLibs {
+                    dependencies {
+                        library "ffmpeg"
+                        library "SDL2"
+                    }
+                }
+            }
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.4.0'
+    compile 'com.android.support:design:23.4.0'
+}
