@@ -4,10 +4,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 
 import com.leon.player.FFmpegPlayer;
 
 public class TestActivity extends AppCompatActivity implements SurfaceHolder.Callback {
+    FFmpegPlayer mPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,10 +22,10 @@ public class TestActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        FFmpegPlayer player = new FFmpegPlayer();
-        player.setDataSource("/sdcard/360.mp4");
-        player.setSurface(holder.getSurface());
-        player.prepare();
+        mPlayer = new FFmpegPlayer();
+        mPlayer.setDataSource("/sdcard/360.mp4");
+        mPlayer.setSurface(holder.getSurface());
+        mPlayer.prepare();
     }
 
     @Override
@@ -34,5 +36,9 @@ public class TestActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
 
+    }
+
+    public void seekTest(View view) {
+        mPlayer.seekTo(60);
     }
 }
