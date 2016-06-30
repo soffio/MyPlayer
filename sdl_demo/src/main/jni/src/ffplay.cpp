@@ -2657,7 +2657,7 @@ static int stream_component_open(VideoState *is, int stream_index) {
     AVCodecContext *avctx;
     AVCodec *codec;
     const char *forced_codec_name = NULL;
-    AVDictionary *opts;
+    AVDictionary *opts = NULL;
     AVDictionaryEntry *t = NULL;
     int sample_rate, nb_channels;
     int64_t channel_layout;
@@ -2719,21 +2719,21 @@ static int stream_component_open(VideoState *is, int stream_index) {
 
 //	opts = filter_codec_opts(codec_opts, avctx->codec_id, ic,
 //			ic->streams[stream_index], codec);
-//	if (!av_dict_get(opts, "threads", NULL, 0))
-//		av_dict_set(&opts, "threads", "auto", 0);
+	if (!av_dict_get(opts, "threads", NULL, 0))
+		av_dict_set(&opts, "threads", "auto", 0);
 //	if (stream_lowres)
 //		av_dict_set_int(&opts, "lowres", stream_lowres, 0);
-//	if (avctx->codec_type == AVMEDIA_TYPE_VIDEO
-//			|| avctx->codec_type == AVMEDIA_TYPE_AUDIO)
-//		av_dict_set(&opts, "refcounted_frames", "1", 0);
-    if ((ret = avcodec_open2(avctx, codec, NULL)) < 0) {
+	if (avctx->codec_type == AVMEDIA_TYPE_VIDEO
+			|| avctx->codec_type == AVMEDIA_TYPE_AUDIO)
+		av_dict_set(&opts, "refcounted_frames", "1", 0);
+    if ((ret = avcodec_open2(avctx, codec, &opts)) < 0) {
         goto fail;
     }
-//	if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
-//		av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
-//		ret = AVERROR_OPTION_NOT_FOUND;
-//		goto fail;
-//	}
+	if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
+		av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
+		ret = AVERROR_OPTION_NOT_FOUND;
+		goto fail;
+	}
 
     is->eof = 0;
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
@@ -2813,8 +2813,8 @@ static int stream_component_open(VideoState *is, int stream_index) {
             break;
     }
 
-//	fail: av_dict_free(&opts);
-    fail:;
+	fail:
+    av_dict_free(&opts);
 
     return ret;
 }
