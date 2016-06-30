@@ -622,6 +622,7 @@ static void video_image_display(VideoState *is) {
             if (vp->pts
                 >= sp->pts
                    + ((float) sp->sub.start_display_time / 1000)) {
+                // TODO draw subtitle
                 int w, h;
 //                SDL_QueryTexture(vp->bmp, NULL, NULL, &w, &h);
 //                for (i = 0; i < sp->sub.num_rects; i++)
@@ -871,7 +872,6 @@ static void set_default_window_size(int width, int height, AVRational sar) {
 }
 
 static int video_open(VideoState *is, int force_set_video_mode, Frame *vp) {
-    int flags = 0;
     int w, h;
 
     if (vp && vp->width)
@@ -888,17 +888,6 @@ static int video_open(VideoState *is, int force_set_video_mode, Frame *vp) {
         h = default_height;
     }
     w = FFMIN(16383, w);
-//    if (win && is->width == w && is->height == h && !force_set_video_mode)
-//        return 0;
-    if (!window_title)
-        window_title = input_filename;
-//    win = SDL_CreateWindow(window_title, SDL_WINDOWPOS_UNDEFINED,
-//                           SDL_WINDOWPOS_UNDEFINED, w, h, flags);
-//    if (!win) {
-//        av_log(NULL, AV_LOG_FATAL, "SDL: could not set video mode - exiting\n");
-//        do_exit(is);
-//    }
-//    render = SDL_CreateRenderer(win, -1, 0);
     is->width = w;
     is->height = h;
 
@@ -1921,7 +1910,7 @@ static int stream_component_open(VideoState *is, int stream_index) {
     AVCodecContext *avctx;
     AVCodec *codec;
     const char *forced_codec_name = NULL;
-    AVDictionary *opts;
+    AVDictionary *opts = NULL;
     AVDictionaryEntry *t = NULL;
     int sample_rate, nb_channels;
     int64_t channel_layout;
@@ -1981,23 +1970,18 @@ static int stream_component_open(VideoState *is, int stream_index) {
         avctx->flags |= CODEC_FLAG_EMU_EDGE;
 #endif
 
-//	opts = filter_codec_opts(codec_opts, avctx->codec_id, ic,
-//			ic->streams[stream_index], codec);
-//	if (!av_dict_get(opts, "threads", NULL, 0))
-//		av_dict_set(&opts, "threads", "auto", 0);
-//	if (stream_lowres)
-//		av_dict_set_int(&opts, "lowres", stream_lowres, 0);
-//	if (avctx->codec_type == AVMEDIA_TYPE_VIDEO
-//			|| avctx->codec_type == AVMEDIA_TYPE_AUDIO)
-//		av_dict_set(&opts, "refcounted_frames", "1", 0);
-    if ((ret = avcodec_open2(avctx, codec, NULL)) < 0) {
+    av_dict_set(&opts, "threads", "auto", 0);
+    if (avctx->codec_type == AVMEDIA_TYPE_VIDEO
+        || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
+        av_dict_set(&opts, "refcounted_frames", "1", 0);
+    if ((ret = avcodec_open2(avctx, codec, &opts)) < 0) {
         goto fail;
     }
-//	if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
-//		av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
-//		ret = AVERROR_OPTION_NOT_FOUND;
-//		goto fail;
-//	}
+	if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
+		av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
+		ret = AVERROR_OPTION_NOT_FOUND;
+		goto fail;
+	}
 
     is->eof = 0;
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
@@ -2061,9 +2045,7 @@ static int stream_component_open(VideoState *is, int stream_index) {
             break;
     }
 
-//	fail: av_dict_free(&opts);
-    fail:;
-
+	fail: av_dict_free(&opts);
     return ret;
 }
 
