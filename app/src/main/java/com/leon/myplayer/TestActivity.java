@@ -41,4 +41,11 @@ public class TestActivity extends AppCompatActivity implements SurfaceHolder.Cal
     public void seekTest(View view) {
         mPlayer.seekTo(60);
     }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        if (mPlayer != null)
+            mPlayer.release();
+    }
 }

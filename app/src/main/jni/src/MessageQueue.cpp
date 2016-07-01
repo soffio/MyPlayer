@@ -21,4 +21,5 @@ bool MessageQueue::popMessage(Message &msg) {
     mQueue.pop_front();
     msg.messageCode = frontMessage.messageCode;
     msg.p_message = frontMessage.p_message;
+    return true;
 }

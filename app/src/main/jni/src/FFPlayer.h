@@ -71,6 +71,40 @@ extern "C" {
 /* TODO: We assume that a decoded and resampled frame fits into this buffer */
 #define SAMPLE_ARRAY_SIZE (8 * 65536)
 
+namespace ffplayer {
+struct VideoState;
+class FFPlayer;
+
+
+    class FFPlayer {
+    public:
+        VideoState *is;
+
+        FFPlayer();
+
+        ~FFPlayer();
+
+        void start();
+
+        void pause();
+
+        void setDataSource(const char *path);
+
+        void prepare();
+
+        void release();
+
+        void seekTo(int64_t seekTimeUs);
+
+        void setWindow(ANativeWindow *window);
+
+        void getDuration(int64_t *timeUs);
+
+    private:
+        std::string mPath;
+        ANativeWindow *mWindow;
+    };
+
 
 typedef struct MyAVPacketList {
     AVPacket pkt;
@@ -165,7 +199,6 @@ typedef struct Decoder {
 
 struct VideoState {
     pthread_t read_tid;
-    AVInputFormat *iformat;
     int abort_request;
     int force_refresh;
     int paused;
@@ -277,35 +310,9 @@ AVFilterGraph *agraph;              // audio filter graph
     AudioEngine *audioEngine;
 
     MessageQueue *messageQueue;
+    FFPlayer *player;
 };
-namespace ffplayer {
-    class FFPlayer {
-    public:
-        VideoState *is;
-
-        FFPlayer();
-
-        ~FFPlayer();
-
-        void start();
-
-        void pause();
-
-        void setDataSource(const char *path);
-
-        void prepare();
-
-        void release();
-
-        void seekTo(int64_t seekTimeUs);
-
-        void setWindow(ANativeWindow *window);
-
-        void getDuration(int64_t *timeUs);
-
-    private:
-        std::string mPath;
-        ANativeWindow *mWindow;
-    };
 }
+
 #endif //MYPLAYER_FFPLAYER_H
+

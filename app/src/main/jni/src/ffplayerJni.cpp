@@ -78,8 +78,8 @@ static void nativeSetDataSource(JNIEnv *env, jobject thiz, jstring jPath) {
 static void nativeRelease(JNIEnv *env, jobject thiz) {
     ALOGD("nativeRelease");
     FFPlayer *player = getMediaPlayer(env, thiz);
-    // TODO use smart pointer
-    delete player;
+    if (player != NULL)
+        player->release();
     setMediaPlayer(env, thiz, 0);
     // TODO setListener null
 }
@@ -95,7 +95,7 @@ static void nativePrepare(JNIEnv *env, jobject thiz) {
 }
 
 static void nativeSeekTo(JNIEnv *env, jobject thiz, jint msec) {
-    ALOGD("nativeSeekTo %d",msec);
+    ALOGD("nativeSeekTo %d", msec);
     FFPlayer *player = getMediaPlayer(env, thiz);
     if (player == NULL) {
         jniThrowException(env, "java/lang/IllegalStateException", NULL);
@@ -109,10 +109,10 @@ static void nativeSetSurface(JNIEnv *env, jobject thiz, jobject jsurface) {
     ALOGD("nativeSetSurface");
     FFPlayer *player = getMediaPlayer(env, thiz);
     if (player == NULL) {
-        jniThrowException(env,"java/lang/IllegalStateException",NULL);
+        jniThrowException(env, "java/lang/IllegalStateException", NULL);
         return;
     }
-    ANativeWindow* window = ANativeWindow_fromSurface(env,jsurface);
+    ANativeWindow *window = ANativeWindow_fromSurface(env, jsurface);
     ANativeWindow_acquire(window);
     player->setWindow(window);
 }

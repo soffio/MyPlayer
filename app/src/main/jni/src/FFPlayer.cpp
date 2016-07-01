@@ -48,6 +48,8 @@
 
 static unsigned sws_flags = SWS_BICUBIC;
 
+using namespace ffplayer;
+
 enum {
     AV_SYNC_AUDIO_MASTER, /* default choice */
             AV_SYNC_VIDEO_MASTER,
@@ -848,16 +850,19 @@ static void stream_close(VideoState *is) {
 }
 
 static void do_exit(VideoState *is) {
+    ALOGV("do_exit");
+    FFPlayer* player;
     if (is) {
+        player = is->player;
         stream_close(is);
     }
+
     av_lockmgr_register(NULL);
     avformat_network_deinit();
     if (show_status)
         printf("\n");
-//    SDL_Quit();
     av_log(NULL, AV_LOG_QUIET, "%s", "");
-    exit(0);
+    delete(player);
 }
 
 static void sigterm_handler(int sig) {
@@ -1502,6 +1507,7 @@ static void decoder_start(Decoder *d, void *(*fn)(void *), void *arg) {
 }
 
 static void *video_thread(void *arg) {
+    ALOGV("myb video_thread");
     VideoState *is = (VideoState *) arg;
     AVFrame *frame = av_frame_alloc();
     double pts;
@@ -1515,6 +1521,7 @@ static void *video_thread(void *arg) {
     }
 
     for (; ;) {
+        ALOGV("myb get_video_frame");
         ret = get_video_frame(is, frame);
         if (ret < 0)
             goto the_end;
@@ -1527,6 +1534,7 @@ static void *video_thread(void *arg) {
         pts = (frame->pts == AV_NOPTS_VALUE) ? NAN : frame->pts * av_q2d(tb);
         ret = queue_picture(is, frame, pts, duration,
                             av_frame_get_pkt_pos(frame), is->viddec.pkt_serial);
+        ALOGV("myb queue_picture");
         av_frame_unref(frame);
 
         if (ret < 0)
@@ -1977,11 +1985,11 @@ static int stream_component_open(VideoState *is, int stream_index) {
     if ((ret = avcodec_open2(avctx, codec, &opts)) < 0) {
         goto fail;
     }
-	if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
-		av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
-		ret = AVERROR_OPTION_NOT_FOUND;
-		goto fail;
-	}
+    if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
+        av_log(NULL, AV_LOG_ERROR, "Option %s not found.\n", t->key);
+        ret = AVERROR_OPTION_NOT_FOUND;
+        goto fail;
+    }
 
     is->eof = 0;
     ic->streams[stream_index]->discard = AVDISCARD_DEFAULT;
@@ -2045,14 +2053,14 @@ static int stream_component_open(VideoState *is, int stream_index) {
             break;
     }
 
-	fail: av_dict_free(&opts);
+    fail:
+    av_dict_free(&opts);
     return ret;
 }
 
 static void stream_component_close(VideoState *is, int stream_index) {
     AVFormatContext *ic = is->ic;
     AVCodecContext *avctx;
-
     if (stream_index < 0 || stream_index >= ic->nb_streams)
         return;
     avctx = ic->streams[stream_index]->codec;
@@ -2134,6 +2142,7 @@ static void print_error(const char *filename, int err) {
 
 /* this thread gets the stream from the disk or the network */
 static void *read_thread(void *arg) {
+    ALOGI("read_thread");
     VideoState *is = (VideoState *) arg;
     AVFormatContext *ic = NULL;
     int err, i, ret;
@@ -2160,7 +2169,7 @@ static void *read_thread(void *arg) {
     }
     ic->interrupt_callback.callback = decode_interrupt_cb;
     ic->interrupt_callback.opaque = is;
-    err = avformat_open_input(&ic, is->filename, is->iformat, NULL);
+    err = avformat_open_input(&ic, is->filename, NULL, NULL);
     if (err < 0) {
         print_error(is->filename, err);
         ret = -1;
@@ -2509,14 +2518,15 @@ static void *read_thread(void *arg) {
     return 0;
 }
 
-static VideoState *stream_open(const char *filename, AVInputFormat *iformat) {
+static VideoState *stream_open(const char *filename, FFPlayer *pPlayer) {
+    ALOGI("stream_open");
     VideoState *is;
 
     is = (VideoState *) av_mallocz(sizeof(VideoState));
     if (!is)
         return NULL;
     av_strlcpy(is->filename, filename, sizeof(is->filename));
-    is->iformat = iformat;
+    is->player = pPlayer;
     is->ytop = 0;
     is->xleft = 0;
     is->messageQueue = new MessageQueue();
@@ -2865,7 +2875,9 @@ static void *event_loop(void *arg) {
 //                }
 //                break;
             case FF_QUIT_EVENT:
+                ALOGD("FF_QUIT_EVENT");
                 do_exit(cur_stream);
+                goto out;
                 break;
             case FF_ALLOC_EVENT:
 //                alloc_picture((VideoState *) event.user.data1,
@@ -2875,6 +2887,7 @@ static void *event_loop(void *arg) {
                 break;
         }
     }
+    out:;
 }
 
 static int opt_format(void *optctx, const char *opt, const char *arg) {
@@ -2964,32 +2977,33 @@ static int lockmgr(void **mutex, enum AVLockOp op) {
     return AVERROR(ret);
 }
 
-int main(int argc, char **argv) {
-    ALOGD("main");
-}
-
 using namespace ffplayer;
 
-FFPlayer::FFPlayer() { }
+FFPlayer::FFPlayer() {
+    ALOGI("FFPlayer()");
+}
 
 FFPlayer::~FFPlayer() {
-
+    ALOGI("~FFPlayer()");
 }
 
 void FFPlayer::start() {
-
+    ALOGI("start");
 }
 
 void FFPlayer::pause() {
-
+    ALOGI("pause");
 }
 
 void FFPlayer::setDataSource(const char *path) {
+    ALOGI("setDataSource %s", path);
     mPath = path;
 }
 
 void ffmpeg_log_callback(void *avcl, int level, const char *fmt, va_list vl) {
     int prio = ANDROID_LOG_VERBOSE;
+    if (level <= level <= AV_LOG_VERBOSE)
+        return;
     if (level <= AV_LOG_ERROR)
         prio = ANDROID_LOG_ERROR;
     else if (level <= AV_LOG_WARNING)
@@ -3006,12 +3020,9 @@ void ffmpeg_log_callback(void *avcl, int level, const char *fmt, va_list vl) {
 
 
 void FFPlayer::prepare() {
-    ALOGV("main");
+    ALOGI("prepare");
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
     av_log_set_callback(ffmpeg_log_callback);
-
-    ALOGV("main3");
-
 
     av_register_all();
     avformat_network_init();
@@ -3020,25 +3031,29 @@ void FFPlayer::prepare() {
         av_log(NULL, AV_LOG_FATAL, "Could not initialize lock manager!\n");
         do_exit(NULL);
     }
-    ALOGV("main4");
+
     av_init_packet(&flush_pkt);
     flush_pkt.data = (uint8_t *) &flush_pkt;
 
-    is = stream_open(mPath.c_str(), NULL);
+    is = stream_open(mPath.c_str(), this);
     if (!is) {
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize VideoState!\n");
         do_exit(NULL);
     }
-    ALOGV("main5");
+
     is->window = mWindow;
-    ALOGV("main6");
     pthread_t event_tid;
     pthread_create(&event_tid, NULL, event_loop, is);
     pthread_setname_np(event_tid, "event_thread");
 }
 
 void FFPlayer::release() {
+    ALOGI("release");
+    Message event;
 
+    event.messageCode = FF_QUIT_EVENT;
+    event.p_message = is;
+    is->messageQueue->sendMessage(event);
 }
 
 void FFPlayer::seekTo(int64_t seekTimeUs) {
@@ -3060,6 +3075,7 @@ void FFPlayer::seekTo(int64_t seekTimeUs) {
 }
 
 void FFPlayer::setWindow(ANativeWindow *window) {
+    ALOGI("setWindow");
     mWindow = window;
 }
 
