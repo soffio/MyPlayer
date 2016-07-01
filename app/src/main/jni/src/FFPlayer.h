@@ -75,7 +75,7 @@ extern "C" {
 typedef struct MyAVPacketList {
     AVPacket pkt;
     struct MyAVPacketList *next;
-    int serial;
+    int serial; // 创建时赋值为PacketQueue的serial
 } MyAVPacketList;
 
 typedef struct PacketQueue {
@@ -83,7 +83,7 @@ typedef struct PacketQueue {
     int nb_packets;
     int size;
     int abort_request;
-    int serial;
+    int serial; // put flush_pkt会增加
     pthread_mutex_t mutex;
     pthread_cond_t cond;
 } PacketQueue;
@@ -140,7 +140,7 @@ typedef struct FrameQueue {
     int windex;
     int size;
     int max_size;
-    int keep_last;
+    int keep_last; // 视频为1
     int rindex_shown;
     pthread_mutex_t mutex;
     pthread_cond_t cond;
@@ -152,9 +152,9 @@ typedef struct Decoder {
     AVPacket pkt_temp;
     PacketQueue *queue;
     AVCodecContext *avctx;
-    int pkt_serial;
+    int pkt_serial;  // packet_queue_get 取出packet的serial
     int finished;
-    int packet_pending;
+    int packet_pending; // 0表示需要继续读packet，一般为decode出错，没有读取到frame
     pthread_cond_t empty_queue_cond;
     int64_t start_pts;
     AVRational start_pts_tb;
