@@ -2475,11 +2475,9 @@ static void *read_thread(void *arg) {
                 start_time != AV_NOPTS_VALUE ? start_time : 0)
                                  / 1000000 <= ((double) duration / 1000000);
         if (pkt->stream_index == is->audio_stream && pkt_in_play_range) {
-            printf("myb packet_queue_put audio\n");
             packet_queue_put(&is->audioq, pkt);
         } else if (pkt->stream_index == is->video_stream && pkt_in_play_range
                    && !(is->video_st->disposition & AV_DISPOSITION_ATTACHED_PIC)) {
-            printf("myb packet_queue_put video\n");
             packet_queue_put(&is->videoq, pkt);
         } else if (pkt->stream_index == is->subtitle_stream
                    && pkt_in_play_range) {
@@ -2923,33 +2921,6 @@ static void opt_input_file(void *optctx, const char *filename) {
     if (!strcmp(filename, "-"))
         filename = "pipe:";
     input_filename = filename;
-}
-
-static int opt_codec(void *optctx, const char *opt, const char *arg) {
-    const char *spec = strchr(opt, ':');
-    if (!spec) {
-        av_log(NULL, AV_LOG_ERROR,
-               "No media specifier was specified in '%s' in option '%s'\n",
-               arg, opt);
-        return AVERROR(EINVAL);
-    }
-    spec++;
-    switch (spec[0]) {
-        case 'a':
-            audio_codec_name = arg;
-            break;
-        case 's':
-            subtitle_codec_name = arg;
-            break;
-        case 'v':
-            video_codec_name = arg;
-            break;
-        default:
-            av_log(NULL, AV_LOG_ERROR,
-                   "Invalid media specifier '%s' in option '%s'\n", spec, opt);
-            return AVERROR(EINVAL);
-    }
-    return 0;
 }
 
 static int dummy;
