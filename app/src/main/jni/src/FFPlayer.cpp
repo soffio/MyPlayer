@@ -89,11 +89,10 @@ static int autoexit;
 static int loop = 1;
 static int framedrop = -1;
 static int infinite_buffer = -1;
-static enum VideoState::ShowMode show_mode = VideoState::SHOW_MODE_NONE;
+static enum VideoState::ShowMode show_mode = VideoState::SHOW_MODE_VIDEO;
 static const char *audio_codec_name;
 static const char *subtitle_codec_name;
 static const char *video_codec_name;
-double rdftspeed = 0.02;
 static int autorotate = 1;
 
 /* current context */
@@ -483,101 +482,6 @@ static void decoder_abort(Decoder *d, FrameQueue *fq) {
     packet_queue_flush(d->queue);
 }
 
-//static inline void fill_rectangle(SDL_Surface *screen, int x, int y, int w,
-//                                  int h, int color, int update) {
-//    SDL_Rect rect;
-//    rect.x = x;
-//    rect.y = y;
-//    rect.w = w;
-//    rect.h = h;
-//    SDL_FillRect(screen, &rect, color);
-//	if (update && w > 0 && h > 0)
-//		SDL_UpdateRect(screen, x, y, w, h);
-//}
-
-/* draw only the border of a rectangle */
-static void fill_border(int xleft, int ytop, int width, int height, int x,
-                        int y, int w, int h, int color, int update) {
-    int w1, w2, h1, h2;
-
-    /* fill the background */
-    w1 = x;
-    if (w1 < 0)
-        w1 = 0;
-    w2 = width - (x + w);
-    if (w2 < 0)
-        w2 = 0;
-    h1 = y;
-    if (h1 < 0)
-        h1 = 0;
-    h2 = height - (y + h);
-    if (h2 < 0)
-        h2 = 0;
-//    fill_rectangle(screen, xleft, ytop, w1, height, color, update);
-//    fill_rectangle(screen, xleft + width - w2, ytop, w2, height, color, update);
-//    fill_rectangle(screen, xleft + w1, ytop, width - w1 - w2, h1, color,
-//                   update);
-//    fill_rectangle(screen, xleft + w1, ytop + height - h2, width - w1 - w2, h2,
-//                   color, update);
-}
-
-#define ALPHA_BLEND(a, oldp, newp, s)\
-((((oldp << s) * (255 - (a))) + (newp * (a))) / (255 << s))
-
-#define BPP 1
-
-//static void blend_subrect(SDL_Texture *bmp, AVPicture *dst,
-//                          const AVSubtitleRect *rect, int imgw, int imgh) {
-//    int x, y, Y, U, V, A;
-//    uint8_t *lum, *cb, *cr;
-//    int dstx, dsty, dstw, dsth;
-//    SDL_Rect dstRect;
-//    const AVPicture *src = &rect->pict;
-//
-//    dstw = av_clip(rect->w, 0, imgw);
-//    dsth = av_clip(rect->h, 0, imgh);
-//    dstx = av_clip(rect->x, 0, imgw - dstw);
-//    dsty = av_clip(rect->y, 0, imgh - dsth);
-//    dstRect.w = dstw;
-//    dstRect.h = dsth;
-//    dstRect.x = dstx;
-//    dstRect.y = dsty;
-//
-//    lum = dst->data[0] + dstx + dsty * dst->linesize[0];
-//    cb = dst->data[1] + dstx / 2 + (dsty >> 1) * dst->linesize[1];
-//    cr = dst->data[2] + dstx / 2 + (dsty >> 1) * dst->linesize[2];
-//
-//    for (y = 0; y < dsth; y++) {
-//        for (x = 0; x < dstw; x++) {
-//            Y = src->data[0][x + y * src->linesize[0]];
-//            A = src->data[3][x + y * src->linesize[3]];
-//            lum[0] = ALPHA_BLEND(A, lum[0], Y, 0);
-//            lum++;
-//        }
-//        lum += dst->linesize[0] - dstw;
-//    }
-//
-//    for (y = 0; y < dsth / 2; y++) {
-//        for (x = 0; x < dstw / 2; x++) {
-//            U = src->data[1][x + y * src->linesize[1]];
-//            V = src->data[2][x + y * src->linesize[2]];
-//            A = src->data[3][2 * x + 2 * y * src->linesize[3]]
-//                + src->data[3][2 * x + 1 + 2 * y * src->linesize[3]]
-//                + src->data[3][2 * x + 1 + (2 * y + 1) * src->linesize[3]]
-//                + src->data[3][2 * x + (2 * y + 1) * src->linesize[3]];
-//            cb[0] = ALPHA_BLEND(A >> 2, cb[0], U, 0);
-//            cr[0] = ALPHA_BLEND(A >> 2, cr[0], V, 0);
-//            cb++;
-//            cr++;
-//        }
-//        cb += dst->linesize[1] - dstw / 2;
-//        cr += dst->linesize[2] - dstw / 2;
-//    }
-//
-//    SDL_UpdateYUVTexture(bmp, &dstRect, rect->pict.data[0],
-//                         rect->pict.linesize[0], NULL, 0, NULL, 0);
-//}
-
 static void calculate_display_rect(SDL_Rect *rect, int scr_xleft, int scr_ytop,
                                    int scr_width, int scr_height, int pic_width, int pic_height,
                                    AVRational pic_sar) {
@@ -612,9 +516,7 @@ static void video_image_display(VideoState *is) {
     ALOGD("video_image_display");
     Frame *vp;
     Frame *sp;
-    AVPicture pict;
     SDL_Rect rect;
-    int i;
 
     vp = frame_queue_peek(&is->pictq);
     if (is->subtitle_st) {
@@ -625,10 +527,6 @@ static void video_image_display(VideoState *is) {
                 >= sp->pts
                    + ((float) sp->sub.start_display_time / 1000)) {
                 // TODO draw subtitle
-                int w, h;
-//                SDL_QueryTexture(vp->bmp, NULL, NULL, &w, &h);
-//                for (i = 0; i < sp->sub.num_rects; i++)
-//                    blend_subrect(vp->bmp, &pict, sp->sub.rects[i], w, h);
             }
         }
     }
@@ -657,177 +555,10 @@ static void video_image_display(VideoState *is) {
 
     ANativeWindow_unlockAndPost(is->window);
 
-//		if (rect.x != is->last_display_rect.x
-//				|| rect.y != is->last_display_rect.y
-//				|| rect.w != is->last_display_rect.w
-//				|| rect.h != is->last_display_rect.h || is->force_refresh) {
-//			int bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
-//			fill_border(is->xleft, is->ytop, is->width, is->height, rect.x,
-//					rect.y, rect.w, rect.h, bgcolor, 1);
-//			is->last_display_rect = rect;
-//		}
-//    }
 }
 
 static inline int compute_mod(int a, int b) {
     return a < 0 ? a % b + b : a % b;
-}
-
-static void video_audio_display(VideoState *s) {
-    int i, i_start, x, y1, y, ys, delay, n, nb_display_channels;
-    int ch, channels, h, h2, bgcolor, fgcolor;
-    int64_t time_diff;
-    int rdft_bits, nb_freq;
-
-    for (rdft_bits = 1; (1 << rdft_bits) < 2 * s->height; rdft_bits++);
-    nb_freq = 1 << (rdft_bits - 1);
-
-    /* compute display index : center on currently output samples */
-    channels = s->audio_tgt.channels;
-    nb_display_channels = channels;
-    if (!s->paused) {
-        int data_used =
-                s->show_mode == VideoState::SHOW_MODE_WAVES ?
-                s->width : (2 * nb_freq);
-        n = 2 * channels;
-        delay = s->audio_write_buf_size;
-        delay /= n;
-
-        /* to be more precise, we take into account the time spent since
-         the last buffer computation */
-        if (audio_callback_time) {
-            time_diff = av_gettime_relative() - audio_callback_time;
-            delay -= (time_diff * s->audio_tgt.freq) / 1000000;
-        }
-
-        delay += 2 * data_used;
-        if (delay < data_used)
-            delay = data_used;
-
-        i_start = x = compute_mod(s->sample_array_index - delay * channels,
-                                  SAMPLE_ARRAY_SIZE);
-        if (s->show_mode == VideoState::SHOW_MODE_WAVES) {
-            h = INT_MIN;
-            for (i = 0; i < 1000; i += channels) {
-                int idx = (SAMPLE_ARRAY_SIZE + x - i) % SAMPLE_ARRAY_SIZE;
-                int a = s->sample_array[idx];
-                int b =
-                        s->sample_array[(idx + 4 * channels) % SAMPLE_ARRAY_SIZE];
-                int c =
-                        s->sample_array[(idx + 5 * channels) % SAMPLE_ARRAY_SIZE];
-                int d =
-                        s->sample_array[(idx + 9 * channels) % SAMPLE_ARRAY_SIZE];
-                int score = a - d;
-                if (h < score && (b ^ c) < 0) {
-                    h = score;
-                    i_start = idx;
-                }
-            }
-        }
-
-        s->last_i_start = i_start;
-    } else {
-        i_start = s->last_i_start;
-    }
-
-//	bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
-    if (s->show_mode == VideoState::SHOW_MODE_WAVES) {
-//        fill_rectangle(screen, s->xleft, s->ytop, s->width, s->height, bgcolor,
-//                       0);
-//
-//        fgcolor = SDL_MapRGB(screen->format, 0xff, 0xff, 0xff);
-//
-//        /* total height for one channel */
-//        h = s->height / nb_display_channels;
-//        /* graph height / 2 */
-//        h2 = (h * 9) / 20;
-//        for (ch = 0; ch < nb_display_channels; ch++) {
-//            i = i_start + ch;
-//            y1 = s->ytop + ch * h + (h / 2); /* position of center line */
-//            for (x = 0; x < s->width; x++) {
-//                y = (s->sample_array[i] * h2) >> 15;
-//                if (y < 0) {
-//                    y = -y;
-//                    ys = y1 - y;
-//                } else {
-//                    ys = y1;
-//                }
-//                fill_rectangle(screen, s->xleft + x, ys, 1, y, fgcolor, 0);
-//                i += channels;
-//                if (i >= SAMPLE_ARRAY_SIZE)
-//                    i -= SAMPLE_ARRAY_SIZE;
-//            }
-//        }
-//
-//        fgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0xff);
-//
-//        for (ch = 1; ch < nb_display_channels; ch++) {
-//            y = s->ytop + ch * h;
-//            fill_rectangle(screen, s->xleft, y, s->width, 1, fgcolor, 0);
-//        }
-//		SDL_UpdateRect(screen, s->xleft, s->ytop, s->width, s->height);
-    } else {
-        nb_display_channels = FFMIN(nb_display_channels, 2);
-        if (rdft_bits != s->rdft_bits) {
-            av_rdft_end(s->rdft);
-            av_free(s->rdft_data);
-            s->rdft = av_rdft_init(rdft_bits, DFT_R2C);
-            s->rdft_bits = rdft_bits;
-            s->rdft_data = (FFTSample *) av_malloc_array(nb_freq,
-                                                         4 * sizeof(*s->rdft_data));
-        }
-        if (!s->rdft || !s->rdft_data) {
-            av_log(NULL, AV_LOG_ERROR,
-                   "Failed to allocate buffers for RDFT, switching to waves display\n");
-            s->show_mode = VideoState::SHOW_MODE_WAVES;
-        } else {
-            FFTSample *data[2];
-            for (ch = 0; ch < nb_display_channels; ch++) {
-                data[ch] = s->rdft_data + 2 * nb_freq * ch;
-                i = i_start + ch;
-                for (x = 0; x < 2 * nb_freq; x++) {
-                    double w = (x - nb_freq) * (1.0 / nb_freq);
-                    data[ch][x] = s->sample_array[i] * (1.0 - w * w);
-                    i += channels;
-                    if (i >= SAMPLE_ARRAY_SIZE)
-                        i -= SAMPLE_ARRAY_SIZE;
-                }
-                av_rdft_calc(s->rdft, data[ch]);
-            }
-            /* Least efficient way to do this, we should of course
-             * directly access it but it is more than fast enough. */
-            for (y = 0; y < s->height; y++) {
-                double w = 1 / sqrt((double) nb_freq);
-                int a = sqrt(
-                        w
-                        * sqrt(
-                                data[0][2 * y + 0] * data[0][2 * y + 0]
-                                + data[0][2 * y + 1]
-                                  * data[0][2 * y + 1]));
-                int b = (nb_display_channels == 2) ?
-                        sqrt(
-                                w
-                                * sqrt(
-                                        data[1][2 * y + 0]
-                                        * data[1][2 * y + 0]
-                                        + data[1][2 * y + 1]
-                                          * data[1][2 * y
-                                                    + 1])) :
-                        a;
-                a = FFMIN(a, 255);
-                b = FFMIN(b, 255);
-//                fgcolor = SDL_MapRGB(screen->format, a, b, (a + b) / 2);
-//
-//                fill_rectangle(screen, s->xpos, s->height - y, 1, 1, fgcolor,
-//                               0);
-            }
-        }
-//		SDL_UpdateRect(screen, s->xpos, s->ytop, 1, s->height);
-        if (!s->paused)
-            s->xpos++;
-        if (s->xpos >= s->width)
-            s->xpos = s->xleft;
-    }
 }
 
 static void stream_close(VideoState *is) {
@@ -851,7 +582,7 @@ static void stream_close(VideoState *is) {
 
 static void do_exit(VideoState *is) {
     ALOGV("do_exit");
-    FFPlayer* player;
+    FFPlayer *player;
     if (is) {
         player = is->player;
         stream_close(is);
@@ -862,7 +593,7 @@ static void do_exit(VideoState *is) {
     if (show_status)
         printf("\n");
     av_log(NULL, AV_LOG_QUIET, "%s", "");
-    delete(player);
+    delete (player);
 }
 
 static void sigterm_handler(int sig) {
@@ -903,9 +634,7 @@ static int video_open(VideoState *is, int force_set_video_mode, Frame *vp) {
 static void video_display(VideoState *is) {
 //    if (!render)
 //        video_open(is, 0, NULL);
-    if (is->audio_st && is->show_mode != VideoState::SHOW_MODE_VIDEO)
-        video_audio_display(is);
-    else if (is->video_st)
+    if (is->video_st)
         video_image_display(is);
 }
 
@@ -1112,17 +841,6 @@ static void video_refresh(void *opaque, double *remaining_time) {
         && is->realtime)
         check_external_clock_speed(is);
 
-    if (!display_disable && is->show_mode != VideoState::SHOW_MODE_VIDEO
-        && is->audio_st) {
-        time = av_gettime_relative() / 1000000.0;
-        if (is->force_refresh || is->last_vis_time + rdftspeed < time) {
-            video_display(is);
-            is->last_vis_time = time;
-        }
-        *remaining_time = FFMIN(*remaining_time,
-                                is->last_vis_time + rdftspeed - time);
-    }
-
     if (is->video_st) {
         int redisplay = 0;
         if (is->force_refresh)
@@ -1298,11 +1016,6 @@ static int do_scale_picture(VideoState *is, Frame *vp, AVFrame *src_frame) {
     }
     sws_scale(is->img_convert_ctx, (const uint8_t *const *) src_frame->data, src_frame->linesize, 0,
               vp->height, pict->data, pict->linesize);
-//    SDL_UpdateYUVTexture(vp->bmp, NULL, pict->data[0], pict->linesize[0],
-//                         pict->data[1], pict->linesize[1], pict->data[2], pict->linesize[2]);
-//    if (pict != src_frame) {
-//        av_frame_free(&pict);
-//    }
     vp->pFrameRGBA = pict;
     return 0;
 }
@@ -1311,67 +1024,14 @@ static int do_scale_picture(VideoState *is, Frame *vp, AVFrame *src_frame) {
  potential locking problems */
 static void alloc_picture(VideoState *is, AVFrame *src) {
     Frame *vp;
-    int64_t bufferdiff;
 
     vp = &is->pictq.queue[is->pictq.windex];
-
-//    if (!vp->bmp || vp->width != src->width || vp->height != src->height) {
-//
-//        free_picture(vp);
-//        video_open(is, 0, vp);
-//
-//        vp->bmp = SDL_CreateTexture(render, SDL_PIXELFORMAT_IYUV,
-//                                    SDL_TEXTUREACCESS_STREAMING, vp->width, vp->height);
-//        if (!vp->bmp) {
-//            av_log(NULL, AV_LOG_FATAL,
-//                   "Error: the video system does not support an image\n"
-//                           "size of %dx%d pixels. Try using -lowres or -vf \"scale=w:h\"\n"
-//                           "to reduce the image size.err: %s\n", vp->width,
-//                   vp->height, SDL_GetError());
-//            do_exit(is);
-//        }
-//        printf("alloc texture %dx%d\n", vp->width, vp->height);
-//    }
-
-//	bufferdiff =
-//			vp->bmp ?
-//					FFMAX(vp->bmp->pixels[0],
-//							vp->bmp->pixels[1]) - FFMIN(vp->bmp->pixels[0], vp->bmp->pixels[1]) :
-//					0;
-//	if (!vp->bmp || vp->bmp->pitches[0] < vp->width
-//			|| bufferdiff < (int64_t) vp->height * vp->bmp->pitches[0]) {
-//		/* SDL allocates a buffer smaller than requested if the video
-//		 * overlay hardware is unable to support the requested size. */
-//		av_log(NULL, AV_LOG_FATAL,
-//				"Error: the video system does not support an image\n"
-//						"size of %dx%d pixels. Try using -lowres or -vf \"scale=w:h\"\n"
-//						"to reduce the image size.\n", vp->width, vp->height);
-//		do_exit(is);
-//	}
     do_scale_picture(is, vp, src);
     pthread_mutex_lock(&is->pictq.mutex);
     vp->allocated = 1;
     pthread_cond_signal(&is->pictq.cond);
     pthread_mutex_unlock(&is->pictq.mutex);
 }
-
-//static void duplicate_right_border_pixels(SDL_Overlay *bmp) {
-//	int i, width, height;
-//	Uint8 *p, *maxp;
-//	for (i = 0; i < 3; i++) {
-//		width = bmp->w;
-//		height = bmp->h;
-//		if (i > 0) {
-//			width >>= 1;
-//			height >>= 1;
-//		}
-//		if (bmp->pitches[i] > width) {
-//			maxp = bmp->pixels[i] + bmp->pitches[i] * height - 1;
-//			for (p = bmp->pixels[i] + width - 1; p < maxp; p += bmp->pitches[i])
-//				*(p + 1) = *p;
-//		}
-//	}
-//}
 
 static int queue_picture(VideoState *is, AVFrame *src_frame, double pts,
                          double duration, int64_t pos, int serial) {
@@ -1406,8 +1066,6 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts,
 
     /* if the frame is not skipped, then display it */
 //    if (vp->bmp) {
-    /* workaround SDL PITCH_WORKAROUND */
-//		duplicate_right_border_pixels(vp->bmp);
     /* update the bitmap content */
 
     vp->pts = pts;
@@ -2074,13 +1732,6 @@ static void stream_component_close(VideoState *is, int stream_index) {
             av_freep(&is->audio_buf1);
             is->audio_buf1_size = 0;
             is->audio_buf = NULL;
-
-            if (is->rdft) {
-                av_rdft_end(is->rdft);
-                av_freep(&is->rdft_data);
-                is->rdft = NULL;
-                is->rdft_bits = 0;
-            }
             break;
         case AVMEDIA_TYPE_VIDEO:
             decoder_abort(&is->viddec, &is->pictq);
@@ -2290,11 +1941,6 @@ static void *read_thread(void *arg) {
     if (st_index[AVMEDIA_TYPE_VIDEO] >= 0) {
         ret = stream_component_open(is, st_index[AVMEDIA_TYPE_VIDEO]);
     }
-    if (is->show_mode == VideoState::SHOW_MODE_NONE)
-        is->show_mode =
-                ret >= 0 ?
-                VideoState::SHOW_MODE_VIDEO :
-                VideoState::SHOW_MODE_RDFT;
 
     if (st_index[AVMEDIA_TYPE_SUBTITLE] >= 0) {
         stream_component_open(is, st_index[AVMEDIA_TYPE_SUBTITLE]);
@@ -2635,30 +2281,11 @@ static void stream_cycle_channel(VideoState *is, int codec_type) {
 }
 
 static void toggle_full_screen(VideoState *is) {
-//#if defined(__APPLE__) && SDL_VERSION_ATLEAST(1, 2, 14)
-//    /* OS X needs to reallocate the SDL overlays */
-//    int i;
-//    for (i = 0; i < VIDEO_PICTURE_QUEUE_SIZE; i++)
-//    is->pictq.queue[i].reallocate = 1;
-//#endif
 //    is_full_screen = !is_full_screen;
 //    video_open(is, 1, NULL);
 }
 
 static void toggle_audio_display(VideoState *is) {
-//    int bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
-//    int next = is->show_mode;
-//    do {
-//        next = (next + 1) % VideoState::SHOW_MODE_NB;
-//    } while (next != is->show_mode
-//             && (next == VideoState::SHOW_MODE_VIDEO && !is->video_st
-//                 || next != VideoState::SHOW_MODE_VIDEO && !is->audio_st));
-//    if (is->show_mode != next) {
-//        fill_rectangle(screen, is->xleft, is->ytop, is->width, is->height,
-//                       bgcolor, 1);
-//        is->force_refresh = 1;
-//        is->show_mode = VideoState::ShowMode(next);
-//    }
 }
 
 static void refresh_loop_wait_event(VideoState *is, Message &msg) {
@@ -2876,10 +2503,6 @@ static void *event_loop(void *arg) {
                 ALOGD("FF_QUIT_EVENT");
                 do_exit(cur_stream);
                 goto out;
-                break;
-            case FF_ALLOC_EVENT:
-//                alloc_picture((VideoState *) event.user.data1,
-//                              (AVFrame *) event.user.data2);
                 break;
             default:
                 break;

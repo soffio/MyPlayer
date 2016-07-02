@@ -200,7 +200,7 @@ typedef struct Decoder {
 struct VideoState {
     pthread_t read_tid;
     int abort_request;
-    int force_refresh;
+    int force_refresh; // 屏幕尺寸发生变化时需要置为1
     int paused;
     int last_paused;
     int queue_attachments_req;
@@ -264,12 +264,6 @@ struct VideoState {
     } show_mode;
     int16_t sample_array[SAMPLE_ARRAY_SIZE];
     int sample_array_index;
-    int last_i_start;
-    RDFTContext *rdft;
-    int rdft_bits;
-    FFTSample *rdft_data;
-    int xpos;
-    double last_vis_time;
 
     int subtitle_stream;
     AVStream *subtitle_st;
