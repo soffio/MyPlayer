@@ -6,6 +6,7 @@
 #define MYPLAYER_MESSAGEQUEUE_H
 
 #include <deque>
+#include <stdint.h>
 
 typedef struct {
     uint8_t messageCode;

@@ -1,6 +1,6 @@
 package com.leon.myplayer;
 
-import android.support.v7.app.AppCompatActivity;
+import android.app.Activity;
 import android.os.Bundle;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -8,7 +8,7 @@ import android.view.View;
 
 import com.leon.player.FFmpegPlayer;
 
-public class TestActivity extends AppCompatActivity implements SurfaceHolder.Callback {
+public class TestActivity extends Activity implements SurfaceHolder.Callback {
     FFmpegPlayer mPlayer;
 
     @Override

@@ -42,7 +42,7 @@ public:
 
     void createEngine();
 
-    void createBufferQueueAudioPlayer(int sampleRate, int channels, void *userData,
+    void createBufferQueueAudioPlayer(int sampleRate, unsigned int channels, void *userData,
                                       void (*callback)(void *userdata,
                                                        uint8_t *stream,
                                                        int len));

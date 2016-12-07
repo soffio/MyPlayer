@@ -1,1 +1,2 @@
-include ':app', ':Test', ':sdl_demo'
+include ':app'
+//, ':Test', ':sdl_demo'

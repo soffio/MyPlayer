@@ -72,10 +72,10 @@ void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
     }
 }
 
-void AudioEngine::createBufferQueueAudioPlayer(int sampleRate, int channels, void *userData,
-                                               void (*callback)(void *userdata,
-                                                                uint8_t *stream,
-                                                                int len)) {
+void AudioEngine::createBufferQueueAudioPlayer(int sampleRate, unsigned int channels,
+                                               void *userData, void (*callback)(void *userdata,
+                                                                                uint8_t *stream,
+                                                                                int len)) {
     ALOGD("createBufferQueueAudioPlayer sampleRate=%d, channels=%d", sampleRate, channels);
     SLresult result;
     if (sampleRate >= 0) {

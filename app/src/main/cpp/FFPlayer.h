@@ -9,6 +9,7 @@ extern "C" {
 #include <android/log.h>
 #include <android/looper.h>
 #include "libavutil/mathematics.h"
+#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <math.h>
 #include <limits.h>
