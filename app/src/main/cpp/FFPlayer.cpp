@@ -2508,7 +2508,8 @@ static void *event_loop(void *arg) {
                 break;
         }
     }
-    out:;
+    out:
+    return 0;
 }
 
 static int opt_format(void *optctx, const char *opt, const char *arg) {
