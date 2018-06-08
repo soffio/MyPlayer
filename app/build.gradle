@@ -13,7 +13,7 @@ android {
             cmake {
                 // Sets a flag to enable format macro constants for the C++ compiler.
 //                cppFlags "-D__STDC_FORMAT_MACROS"
-                arguments '-DANDROID_STL=gnustl_static'
+                arguments '-DANDROID_STL=gnustl_static' , '-DANDROID_ARM_NEON=TRUE'
             }
         }
 
